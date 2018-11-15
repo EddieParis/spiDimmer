@@ -5,7 +5,7 @@
     <ProjectVersion>6.2</ProjectVersion>
     <ToolchainName>com.Atmel.AVRGCC8.C</ToolchainName>
     <ProjectGuid>{025c6149-33ad-4d09-bef1-d463c0c6ae2c}</ProjectGuid>
-    <avrdevice>ATtiny13</avrdevice>
+    <avrdevice>ATtiny25</avrdevice>
     <avrdeviceseries>none</avrdeviceseries>
     <OutputType>Executable</OutputType>
     <Language>C</Language>
@@ -37,6 +37,7 @@
   </dependencies>
 </framework-data>
     </AsfFrameworkConfig>
+    <avrtool />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <ToolchainSettings>
@@ -95,6 +96,9 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="spi.c">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="SpiDimmer.c">
       <SubType>compile</SubType>
     </Compile>
