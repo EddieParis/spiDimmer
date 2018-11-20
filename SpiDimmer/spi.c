@@ -6,26 +6,27 @@
  */ 
 
 #include <avr/io.h>
+#include <avr/interrupt.h>
 
-void Init(void) 
+void SpiInit(void) 
 {
 	// set MISO as output
 	DDRB |= 1<<DDB1;
-	USICR = 1<<USIWM0|(1<<USICS1);
+	// enable interrupt, 3 wire mode, ext clk rising edge
+	USICR = (1<<USIOIE)|(1<<USIWM0)|(1<<USICS1);
 }
 	
-	
-	init:
-	ldi r16,(1<<USIWM0)|(1<<USICS1)
-	out USICR,r16
-	...
-	SlaveSPITransfer:
-	out USIDR,r16
-	ldi r16,(1<<USIOIF)
-	out USISR,r16
-	SlaveSPITransfer_loop:
-	in r16, USISR
-	sbrs r16, USIOIF
-	rjmp SlaveSPITransfer_loop
-	in r16,USIDR
+uint8_t SpiGetData(void)
+{
+	return USIDR;	
+}
+
+void SpiSetData(uint8_t data)
+{
+	USIDR = data;
+}
+
+ISR(USI_OVF_vect)
+{
+	USISR |= 1<<USIOIF;	
 }
