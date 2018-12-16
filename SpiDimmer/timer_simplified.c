@@ -181,6 +181,7 @@ void Event_WaitNext( void )
 }
 
 #if TIMER_MAX != 0
+
 ISR(TIMER1_COMPA_vect)
 {	
 	uint8_t index;
@@ -218,14 +219,3 @@ ISR(TIMER1_COMPA_vect)
 }
 
 #endif
-
-/*
-ISR(TIM_INT_vect)
-{
-	// Clear interrupt
-	TIM_INT_PORT |= 1<<TIM_INT_PORTBIT;
-	
-	readable_time = current_ms;
-	can_read_time = 1;
-}
-*/
