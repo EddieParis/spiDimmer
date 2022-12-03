@@ -37,7 +37,6 @@ void SpiRxCB(void * arg);
 event_t Events[]={ {SpiRxCB, (void*)0, 0, 1 } };
 
 uint8_t channel_a = 0;
-uint8_t channel_b = 0;
 
 uint8_t old_net_a = 0;
 uint8_t old_net_b = 0;
@@ -49,11 +48,22 @@ uint8_t sequence = -1;
 
 uint8_t input_msg[2], output_msg[2] = {0,0};
 
+// 7 MOSI (input) PB2
+// 6 INT0 used for SCK (input) PB1
+// 5 OC0A (output) PB0
+// 3 ZDC (input) PB4
+// 2 _SEL (input) PB3
+// 1 debug
+
+
 int main(void)
 {
 	
-	DDRB |= 1<<DDB4;
-	PORTB &= ~(1<<COMMAND_BIT);
+	//OC0A as output
+	DDRB |= 1<<DDB0;
+	
+	//ZDC as Wpullup
+	PORTB |= 1<<PB4;
 	
 	Event_Init();
 	SpiInit();
@@ -61,17 +71,24 @@ int main(void)
 	SpiSetData(0);
 	
 	// Clear on compare match
-	TCCR0A = (1<<COM0B1) | (1<<COM0A1);
+	TCCR0A = (1<<COM0A1);
 	// Mode 0
-	// divide by 256 -> 64us per tik 156 ticks for 100Hz 
-	TCCR0B = 1<<CS02;
+	// clk=9.6MHz divide by 1024 -> 100.6us per tick 94 ticks for 100Hz (10.027 ms)
+	TCCR0B = 1<<CS02 | 1<<CS00;
+	
+	channel_a = 39;
+	OCR0A = 39;	
 	
 	//pull up on Pin of int0
-	PORTD |= 1<<PORTD6;
+	//PORTD |= 1<<PORTD6;
 	// any change on int0 triggers interrupt
-	MCUCR |= 1<<ISC00;
+	//MCUCR |= 1<<ISC00;
+	
+	
+	
+	PCMSK = 1<<PCINT4;
 	// enable int0
-	GIMSK |= 1<<INT0;
+	GIMSK |= 1<<PCIE;
 	
 	sei();
 	
@@ -84,103 +101,60 @@ int main(void)
 void SpiRxCB(void * arg)
 {
 	Event_ClearSignal(SPIRX_EVENT);
-	input_msg[val] = SpiGetData();
 	
-	/* First w are in init mode, try to count the number of messages that are 00,00
-	It is the sequence number we are in the chain.
-	Master sends 00,00 then 10,00 then 20,00
-	So first device get 00,00 10,00 20,00 00,00 10,00 20,00
-	second device get   00,00 00,00 10,00 20,00 00,00 10,00
-	third device get    00,00 00,00 00,00 10,00 20,00 00,00
-	*/
-	if (init == 1 && val == 1)
-	{
-		if ( input_msg[0] == 0 && input_msg[1] == 0 )
-		{
-			sequence += 1;
-		}
-		else
-		{
-			init = 0;
-		}
-		output_msg[0] = input_msg[0];
-		output_msg[1] = input_msg[1];
-	}
-	else
-	{
-		if (val==1)
-		{
-			uint8_t msg_seq = input_msg[0]>>4;
-			if (sequence == msg_seq)
-			{
-				uint8_t temp_a = ((input_msg[0]&0x0F) <<2 ) | input_msg[1]>>6;
-				uint8_t temp_b = input_msg[1] & 0x3F;
-			
-				if (old_net_a != temp_a)
-				{
-					channel_a = temp_a;
-					old_net_a = temp_a;
-				}
-			
-				if (old_net_b != temp_b)
-				{
-					channel_b = temp_b;
-					old_net_b = temp_b;
-				}			
-
-				output_msg[0] = (sequence<<4) | (channel_a>>2);
-				output_msg[1] = (channel_a<<6) | channel_b;	
-			}
-			else
-			{
-				output_msg[0] = input_msg[0];
-				output_msg[1] = input_msg[1];
-			}
-		
-		}
-	}
-
-	val ^= 1;
-
-	SpiSetData(output_msg[val]);
-
-/*
-	if (val == 0)
-	{
-		channel_a = SpiGetData();
-		val = 1;
-	}
-	else
-	{
-		channel_b = SpiGetData();
-		val = 0;
-	}
-*/
+	channel_a = SpiGetData();
 }
-
-
 
 /* ZDC interrupt */
-ISR(INT0_vect)
+ISR(PCINT0_vect)
 {
-	// Reset the timer
-	if (channel_a != 0)
-	{
-		// forces toggle on set mode -> set output high
-		TCCR0A |= (1<<COM0A1) | (1<<COM0A0);
-		TCCR0B |= 1<<FOC0A;
+	if (PINB&(1<<PINB4)) {
+		GTCCR = (1<<TSM) + (1<<PSR10);
+		TCNT0 = 0;
+		GTCCR &= (1<<TSM);
+			
+		if (channel_a != 0)
+		{
+			// forces toggle on set mode -> set output high
+			TCCR0A |= (1<<COM0A1) | (1<<COM0A0);
+			TCCR0B |= 1<<FOC0A;
+		}
+			
+		OCR0A = channel_a;
+			
+		TCCR0A = (1<<COM0A1);
 	}
-
-	if (channel_b != 0)
-	{
-		// forces toggle on set mode -> set output high
-		TCCR0A |= (1<<COM0B1) | (1<<COM0B0);
-		TCCR0B |= 1<<FOC0B;
-	}
-	
-	OCR0A = channel_a;
-	OCR0B = channel_b;
-	
-	TCCR0A = (1<<COM0B1) | (1<<COM0A1);
-	
 }
+
+/* ZDC interrupt */
+//ISR(PCINT0_vect)
+//{
+	//if (!(PINB&(1<<PINB4))) {
+		//GTCCR = (1<<TSM) + (1<<PSR10);
+		//TCNT0 = 255-6;
+		//GTCCR &= (1<<TSM);
+//
+		//TIMSK0 = 1<<TOIE0;	
+	//}
+//}
+//
+//ISR(TIM0_OVF_vect)
+//{
+	//GTCCR = (1<<TSM) + (1<<PSR10);
+	//TCNT0 = 0;
+	//GTCCR &= (1<<TSM);
+			//
+	//if (channel_a != 0)
+	//{
+		//// forces toggle on set mode -> set output high
+		//TCCR0A |= (1<<COM0A1) | (1<<COM0A0);
+		//TCCR0B |= 1<<FOC0A;
+	//}
+			//
+	//OCR0A = channel_a;
+			//
+	//TCCR0A = (1<<COM0A1);
+//
+	//TIMSK0 = 0;
+	//
+//}

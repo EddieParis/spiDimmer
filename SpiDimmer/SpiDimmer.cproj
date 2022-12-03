@@ -5,7 +5,7 @@
     <ProjectVersion>7.0</ProjectVersion>
     <ToolchainName>com.Atmel.AVRGCC8.C</ToolchainName>
     <ProjectGuid>{025c6149-33ad-4d09-bef1-d463c0c6ae2c}</ProjectGuid>
-    <avrdevice>ATtiny2313A</avrdevice>
+    <avrdevice>ATtiny13A</avrdevice>
     <avrdeviceseries>none</avrdeviceseries>
     <OutputType>Executable</OutputType>
     <Language>C</Language>
@@ -37,7 +37,8 @@
         </dependencies>
       </framework-data>
     </AsfFrameworkConfig>
-    <avrtool>com.atmel.avrdbg.tool.avrdragon</avrtool>
+    <avrtool>
+    </avrtool>
     <com_atmel_avrdbg_tool_avrdragon>
       <ToolOptions>
         <InterfaceProperties>
@@ -51,12 +52,14 @@
     <avrtoolinterface>debugWIRE</avrtoolinterface>
     <preserveEEPROM>true</preserveEEPROM>
     <avrtoolserialnumber>00A20003322B</avrtoolserialnumber>
-    <avrdeviceexpectedsignature>0x1E910A</avrdeviceexpectedsignature>
+    <avrdeviceexpectedsignature>0x1E9007</avrdeviceexpectedsignature>
+    <ResetRule>0</ResetRule>
+    <EraseKey />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <ToolchainSettings>
       <AvrGcc>
-  <avrgcc.common.Device>-mmcu=attiny2313a -B "%24(PackRepoDir)\atmel\ATtiny_DFP\1.2.118\gcc\dev\attiny2313a"</avrgcc.common.Device>
+  <avrgcc.common.Device>-mmcu=attiny13a -B "%24(PackRepoDir)\atmel\ATtiny_DFP\1.3.229\gcc\dev\attiny13a"</avrgcc.common.Device>
   <avrgcc.common.outputfiles.hex>True</avrgcc.common.outputfiles.hex>
   <avrgcc.common.outputfiles.lss>True</avrgcc.common.outputfiles.lss>
   <avrgcc.common.outputfiles.eep>True</avrgcc.common.outputfiles.eep>
@@ -71,7 +74,7 @@
   </avrgcc.compiler.symbols.DefSymbols>
   <avrgcc.compiler.directories.IncludePaths>
     <ListValues>
-      <Value>%24(PackRepoDir)\atmel\ATtiny_DFP\1.2.118\include</Value>
+      <Value>%24(PackRepoDir)\atmel\ATtiny_DFP\1.3.229\include</Value>
     </ListValues>
   </avrgcc.compiler.directories.IncludePaths>
   <avrgcc.compiler.optimization.level>Optimize for size (-Os)</avrgcc.compiler.optimization.level>
@@ -85,7 +88,7 @@
   </avrgcc.linker.libraries.Libraries>
   <avrgcc.assembler.general.IncludePaths>
     <ListValues>
-      <Value>%24(PackRepoDir)\atmel\ATtiny_DFP\1.2.118\include</Value>
+      <Value>%24(PackRepoDir)\atmel\ATtiny_DFP\1.3.229\include</Value>
     </ListValues>
   </avrgcc.assembler.general.IncludePaths>
 </AvrGcc>
@@ -94,7 +97,7 @@
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <ToolchainSettings>
       <AvrGcc>
-  <avrgcc.common.Device>-mmcu=attiny2313a -B "%24(PackRepoDir)\atmel\ATtiny_DFP\1.2.118\gcc\dev\attiny2313a"</avrgcc.common.Device>
+  <avrgcc.common.Device>-mmcu=attiny13a -B "%24(PackRepoDir)\atmel\ATtiny_DFP\1.3.229\gcc\dev\attiny13a"</avrgcc.common.Device>
   <avrgcc.common.outputfiles.hex>True</avrgcc.common.outputfiles.hex>
   <avrgcc.common.outputfiles.lss>True</avrgcc.common.outputfiles.lss>
   <avrgcc.common.outputfiles.eep>True</avrgcc.common.outputfiles.eep>
@@ -109,7 +112,7 @@
   </avrgcc.compiler.symbols.DefSymbols>
   <avrgcc.compiler.directories.IncludePaths>
     <ListValues>
-      <Value>%24(PackRepoDir)\atmel\ATtiny_DFP\1.2.118\include</Value>
+      <Value>%24(PackRepoDir)\atmel\ATtiny_DFP\1.3.229\include</Value>
     </ListValues>
   </avrgcc.compiler.directories.IncludePaths>
   <avrgcc.compiler.optimization.level>Optimize (-O1)</avrgcc.compiler.optimization.level>
@@ -124,7 +127,7 @@
   </avrgcc.linker.libraries.Libraries>
   <avrgcc.assembler.general.IncludePaths>
     <ListValues>
-      <Value>%24(PackRepoDir)\atmel\ATtiny_DFP\1.2.118\include</Value>
+      <Value>%24(PackRepoDir)\atmel\ATtiny_DFP\1.3.229\include</Value>
     </ListValues>
   </avrgcc.assembler.general.IncludePaths>
   <avrgcc.assembler.debugging.DebugLevel>Default (-Wa,-g)</avrgcc.assembler.debugging.DebugLevel>
