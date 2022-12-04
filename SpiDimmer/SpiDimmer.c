@@ -14,14 +14,26 @@
 
 /*
 * PIN assignments
-* 1 (PB5-reset) external sw (in weak pull-up)
-* 2 PB3 Zero Detect (in)
-* 3 PB4 Transistors command (out)
-* 4 GND
-* 5 PBO - MOSI (in)
-* 6 PB1 - MISO (out)
-* 7 PB2 - SCK (in)
-* 8 VCC
+*  1 (PB5-reset) external sw (in weak pull-up)
+*  2 NC
+*  3 NC
+*  4 NC
+*  5 PA0 - Zero Detect (in-pullup) - PCINT8
+*  6 PD2 - Switch 1 (in-pullup) - PCINT13
+*  7 PD3 - Switch 2 (in-pullup) - PCINT14
+*  8 PD4 - Switch 3 (in-pullup) - PCINT15
+*  9 PD5 - OCC0B - Transistors ch 2 command (out)
+* 10 GND
+* 11 PD6 - Switch 4 (in-pullup) - PCINT17
+* 12 NC
+* 13 NC
+* 14 PB2 - OCC0A - Transistors ch 1 command (out)
+* 15 PB3 - OCC1A - Transistors ch 3 command (out)
+* 16 PB4 - OCC1B - Transistors ch 4 command (out)
+* 17 PB5 - MOSI (in)  <- we are the slave
+* 18 PB6 - MISO (out) <- we are the slave
+* 19 PB7 - SCK (in)   <- we are the slave
+* 20 VCC
 */
 
 /* message format
@@ -36,8 +48,13 @@ void SpiRxCB(void * arg);
 
 event_t Events[]={ {SpiRxCB, (void*)0, 0, 1 } };
 
-uint8_t channel_a = 0;
+uint8_t channel_a = 0x10;
 uint8_t channel_b = 0;
+
+uint8_t time_cnt = 0;
+int8_t delta = 1;
+uint8_t top_pause=0;
+uint8_t last_value=0;
 
 uint8_t old_net_a = 0;
 uint8_t old_net_b = 0;
@@ -52,9 +69,12 @@ uint8_t input_msg[2], output_msg[2] = {0,0};
 int main(void)
 {
 	
-	DDRB |= 1<<DDB4;
-	PORTB &= ~(1<<COMMAND_BIT);
-	
+	DDRB |= (1<<DDB4)|(1<<DDB3)|(1<<DDB2);
+	PORTB &= ~((1<<PORTB4)|(1<<PORTB3)|(1<<PORTB2));
+
+	DDRD |= (1<<DDD5);
+	PORTD &= ~((1<<PORTD5));
+		
 	Event_Init();
 	SpiInit();
 	
@@ -63,15 +83,21 @@ int main(void)
 	// Clear on compare match
 	TCCR0A = (1<<COM0B1) | (1<<COM0A1);
 	// Mode 0
-	// divide by 256 -> 64us per tik 156 ticks for 100Hz 
-	TCCR0B = 1<<CS02;
+	// divide by 1024 -> 128us per tick 78 ticks for 100Hz 
+	// divide by 256 -> 32us per tick 312 ticks for 100Hz 
+	// -> keep 64
+	TCCR0B = (1<<CS02)|(1<<CS00);
 	
-	//pull up on Pin of int0
-	PORTD |= 1<<PORTD6;
-	// any change on int0 triggers interrupt
-	MCUCR |= 1<<ISC00;
-	// enable int0
-	GIMSK |= 1<<INT0;
+	//pull up on Pin of input switches
+	PORTD |= (1<<PORTD6)|(1<<PORTD4)|(1<<PORTD3)|(1<<PORTD2);
+	
+	//pull up on Pin of ZDC
+	PORTA |= (1<<PORTA0);
+	// enable pin change interrupt for ZDC
+	PCMSK1 |= 1<<PCINT8;
+
+	// enable pin change int
+	GIMSK |= 1<<PCIE1;
 	
 	sei();
 	
@@ -84,6 +110,10 @@ int main(void)
 void SpiRxCB(void * arg)
 {
 	Event_ClearSignal(SPIRX_EVENT);
+	
+	channel_a = SpiGetData();
+	
+#if 0	
 	input_msg[val] = SpiGetData();
 	
 	/* First w are in init mode, try to count the number of messages that are 00,00
@@ -143,7 +173,7 @@ void SpiRxCB(void * arg)
 	val ^= 1;
 
 	SpiSetData(output_msg[val]);
-
+#endif
 /*
 	if (val == 0)
 	{
@@ -161,26 +191,75 @@ void SpiRxCB(void * arg)
 
 
 /* ZDC interrupt */
-ISR(INT0_vect)
+ISR(PCINT1_vect)
 {
-	// Reset the timer
-	if (channel_a != 0)
-	{
-		// forces toggle on set mode -> set output high
-		TCCR0A |= (1<<COM0A1) | (1<<COM0A0);
-		TCCR0B |= 1<<FOC0A;
-	}
+	
+	if (PINA&(1<<PINA0)) {
+		GTCCR = 1<<PSR10;
+		TCNT0 = 0;
+			
+		// Reset the timer
+		if (channel_a != 0)
+		{
+			// forces toggle on set mode -> set output high
+			TCCR0A |= (1<<COM0A1) | (1<<COM0A0);
+			TCCR0B |= 1<<FOC0A;
+		}
 
-	if (channel_b != 0)
-	{
-		// forces toggle on set mode -> set output high
-		TCCR0A |= (1<<COM0B1) | (1<<COM0B0);
-		TCCR0B |= 1<<FOC0B;
+		if (channel_b != 0)
+		{
+			// forces toggle on set mode -> set output high
+			TCCR0A |= (1<<COM0B1) | (1<<COM0B0);
+			TCCR0B |= 1<<FOC0B;
+		}
+	
+		OCR0A = channel_a;
+		OCR0B = channel_b;
+	
+		TCCR0A = (1<<COM0B1) | (1<<COM0A1);
+
+		if ((PIND&(1<<PIND2))==0) {		
+            if (time_cnt > 50 && time_cnt % 10 == 0 && top_pause == 0)
+			{
+				time_cnt += 1;
+				channel_a += delta;
+				if (channel_a == 0)
+				{
+					delta = -delta;
+				}
+				else if (channel_a == 78)
+				{
+					delta = -delta;
+					top_pause = 100;
+				}
+			}
+			else
+			{
+				time_cnt += 1;
+				if (top_pause)
+				{
+					top_pause -= 1;
+				}
+			}
+		}
+		else if (0 < time_cnt && time_cnt <= 50)
+		{
+			top_pause = 0;
+			if (channel_a == 0)
+			{
+				channel_a = last_value;
+			}
+			else
+			{
+				last_value = channel_a;
+				channel_a = 0;
+			}
+			time_cnt = 0;
+		}
+		else
+		{
+			time_cnt = 0;
+		}
+		
 	}
-	
-	OCR0A = channel_a;
-	OCR0B = channel_b;
-	
-	TCCR0A = (1<<COM0B1) | (1<<COM0A1);
-	
 }

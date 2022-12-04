@@ -12,7 +12,7 @@
 void SpiInit(void) 
 {
 	// set MISO as output
-#ifdef __AVR_ATtiny2313A__ 
+#if defined(__AVR_ATtiny2313A__) || defined(__AVR_ATtiny4313__)
 	DDRB |= 1<<DDB6;
 #elif defined __AVR_ATtiny44__
 	DDRA |= 1<<DDA1;
