@@ -50,8 +50,7 @@ void SpiRxCB(void * arg);
 
 event_t Events[]={ {SpiRxCB, (void*)0, 0, 1 } };
 
-Channel channel_a;
-Channel channel_b;
+Channel channels[4];
 
 uint8_t old_net_a = 0;
 uint8_t old_net_b = 0;
@@ -62,6 +61,8 @@ uint8_t init = 1;
 uint8_t sequence = -1;
 
 uint8_t input_msg[2], output_msg[2] = {0,0};
+
+uint8_t spi_cmd=0;
 
 int main(void)
 {
@@ -75,7 +76,13 @@ int main(void)
 	Event_Init();
 	SpiInit();
 	
-	SpiSetData(0);
+	SpiSetData(0xFF);
+	
+	for (int i=0; i<4; i++)
+	{
+		channels[i] = Channel();
+		channels[i].setValue(0);
+	}
 	
 	// Clear on compare match
 	TCCR0A = (1<<COM0B1) | (1<<COM0A1);
@@ -108,7 +115,38 @@ void SpiRxCB(void * arg)
 {
 	Event_ClearSignal(SPIRX_EVENT);
 	
-	channel_a.setValue(SpiGetData());
+	if (spi_cmd==0)
+	{
+		spi_cmd = SpiGetData();
+		
+		if ((spi_cmd&0x80) == 0)
+		{
+			uint8_t chan = spi_cmd&0x03;
+			SpiSetData(channels[chan].getValue());
+		}
+		else
+		{
+			SpiSetData(0xFF);	
+		}
+		return;
+	}
+	else if (spi_cmd&0x80)
+	{
+		uint8_t chan = spi_cmd&0x03;
+		// write mode
+		channels[chan].setValue(SpiGetData());	
+		SpiSetData(0xFF);
+		spi_cmd = 0;
+	}
+	else 
+	{
+		// data read was already prepared
+		SpiSetData(0xFF);
+		spi_cmd = 0;
+	}
+	
+	
+	
 	
 #if 0	
 	input_msg[val] = SpiGetData();
@@ -196,25 +234,25 @@ ISR(PCINT1_vect)
 		TCNT0 = 0;
 			
 		// Reset the timer
-		if (channel_a.getValue() != 0)
+		if (channels[0].getValue() != 0)
 		{
 			// forces toggle on set mode -> set output high
 			TCCR0A |= (1<<COM0A1) | (1<<COM0A0);
 			TCCR0B |= 1<<FOC0A;
 		}
 
-		if (channel_b.getValue() != 0)
+		if (channels[1].getValue() != 0)
 		{
 			// forces toggle on set mode -> set output high
 			TCCR0A |= (1<<COM0B1) | (1<<COM0B0);
 			TCCR0B |= 1<<FOC0B;
 		}
 	
-		OCR0A = channel_a.getValue();
-		OCR0B = channel_b.getValue();
+		OCR0A = channels[0].getValue();
+		OCR0B = channels[1].getValue();
 	
 		TCCR0A = (1<<COM0B1) | (1<<COM0A1);
 
-		channel_a.Periodic((PIND&(1<<PIND2))==0);
+		channels[0].Periodic((PIND&(1<<PIND2))==0);
 	}
 }
