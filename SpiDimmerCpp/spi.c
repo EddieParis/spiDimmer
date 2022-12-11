@@ -20,7 +20,13 @@ void SpiInit(void)
 	// enable interrupt, 3 wire mode, ext clk rising edge
 	USICR = (1<<USIOIE)|(1<<USIWM0)|(1<<USICS1);
 }
-	
+
+void SpiUninit(void)
+{
+	DDRB &= ~(1<<DDB6);
+	USICR = 0;
+}
+
 uint8_t SpiGetData(void)
 {
 	return USIDR;	

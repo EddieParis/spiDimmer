@@ -27,7 +27,7 @@
 *  9 PD5 - OCC0B - Transistors ch 2 command (out)
 * 10 GND
 * 11 PD6 - Switch 4 (in-pullup) - PCINT17
-* 12 NC
+* 12 PB0 - CS for SPI (in-pullup)
 * 13 NC
 * 14 PB2 - OCC0A - Transistors ch 1 command (out)
 * 15 PB3 - OCC1A - Transistors ch 3 command (out)
@@ -62,11 +62,13 @@ uint8_t sequence = -1;
 
 uint8_t input_msg[2], output_msg[2] = {0,0};
 
+uint8_t spi_step=0;
 uint8_t spi_cmd=0;
 
 int main(void)
 {
 	
+	// configure output for mos commands
 	DDRB |= (1<<DDB4)|(1<<DDB3)|(1<<DDB2);
 	PORTB &= ~((1<<PORTB4)|(1<<PORTB3)|(1<<PORTB2));
 
@@ -95,13 +97,19 @@ int main(void)
 	//pull up on Pin of input switches
 	PORTD |= (1<<PORTD6)|(1<<PORTD4)|(1<<PORTD3)|(1<<PORTD2);
 	
+	// pull up for CS
+	PORTB |= (1<<PORTB0);
+	// enable pin change interrupt for CS
+	PCMSK |= 1<<PCINT0;
+
+	
 	//pull up on Pin of ZDC
 	PORTA |= (1<<PORTA0);
 	// enable pin change interrupt for ZDC
 	PCMSK1 |= 1<<PCINT8;
 
 	// enable pin change int
-	GIMSK |= 1<<PCIE1;
+	GIMSK |= (1<<PCIE1)|(1<<PCIE0);
 	
 	sei();
 	
@@ -115,7 +123,7 @@ void SpiRxCB(void * arg)
 {
 	Event_ClearSignal(SPIRX_EVENT);
 	
-	if (spi_cmd==0)
+	if (spi_step == 0)
 	{
 		spi_cmd = SpiGetData();
 		
@@ -128,9 +136,8 @@ void SpiRxCB(void * arg)
 		{
 			SpiSetData(0xFF);	
 		}
-		return;
 	}
-	else if (spi_cmd&0x80)
+	else if (spi_step == 1 && (spi_cmd&0x80))
 	{
 		uint8_t chan = spi_cmd&0x03;
 		// write mode
@@ -145,7 +152,7 @@ void SpiRxCB(void * arg)
 		spi_cmd = 0;
 	}
 	
-	
+	spi_step++;
 	
 	
 #if 0	
@@ -223,6 +230,22 @@ void SpiRxCB(void * arg)
 */
 }
 
+/* CS interrupt */
+ISR(PCINT0_vect)
+{
+	if (PINB&(1<<PINB0))
+	{
+		// CS high, chip deselected.
+		SpiUninit();
+	}
+	else
+	{
+		SpiInit();
+		SpiSetData(0xFF);
+		spi_step = 0;
+	}
+	
+}
 
 
 /* ZDC interrupt */
@@ -254,5 +277,8 @@ ISR(PCINT1_vect)
 		TCCR0A = (1<<COM0B1) | (1<<COM0A1);
 
 		channels[0].Periodic((PIND&(1<<PIND2))==0);
+		channels[1].Periodic((PIND&(1<<PIND3))==0);
+		channels[2].Periodic((PIND&(1<<PIND4))==0);
+		channels[3].Periodic((PIND&(1<<PIND6))==0);
 	}
 }

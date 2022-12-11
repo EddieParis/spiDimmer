@@ -15,6 +15,7 @@ extern "C"
 #endif
 
 void SpiInit(void);
+void SpiUninit(void);
 uint8_t SpiGetData(void);
 void SpiSetData(uint8_t data);
 
