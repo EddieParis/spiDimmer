@@ -8,6 +8,7 @@
 
 #include "Channel.h"
 
+#define STEP 1
 
 Channel::Channel()
 {
@@ -15,7 +16,23 @@ Channel::Channel()
 	time_cnt = 0;
 	delta = 1;
 	top_pause=0;
-	last_value=0;
+	last_value=78;
+}
+
+void Channel::setValue(int8_t val)
+{
+	if (val>78)
+	{
+		value = 78;
+	}
+	else if (val < 0)
+	{
+		value = 0;
+	}
+	else 
+	{
+		value = val;
+	}
 }
 
 void Channel::Periodic(bool button)
@@ -24,14 +41,14 @@ void Channel::Periodic(bool button)
 		if (time_cnt > 50 && time_cnt % 10 == 0 && top_pause == 0)
 		{
 			time_cnt += 1;
-			value += delta;
+			setValue(value+delta);
 			if (value == 0)
 			{
-				delta = -delta;
+				delta = STEP;
 			}
-			else if (value == 78)
+			else if (value >= 78)
 			{
-				delta = -delta;
+				delta = -STEP;
 				top_pause = 100;
 			}
 		}
@@ -44,12 +61,12 @@ void Channel::Periodic(bool button)
 			}
 		}
 	}
-	else if (0 < time_cnt && time_cnt <= 50)
+	else if (8 < time_cnt && time_cnt <= 50)
 	{
 		top_pause = 0;
 		if (value == 0)
 		{
-			value = last_value;
+			setValue(last_value);
 		}
 		else
 		{

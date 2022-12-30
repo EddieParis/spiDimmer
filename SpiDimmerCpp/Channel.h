@@ -17,15 +17,15 @@ public:
 	Channel();
 	void Periodic(bool button);
 	
-	inline uint8_t getValue() const { return value; }
-	inline void setValue(uint8_t val) { value = val; }
+	inline int8_t getValue() const { return value; }
+	void setValue(int8_t val);
 
 private:
-	uint8_t value;
+	int8_t value;
 	uint8_t time_cnt;
 	int8_t delta;
 	uint8_t top_pause;
-	uint8_t last_value;
+	int8_t last_value;
 	
 	
 };

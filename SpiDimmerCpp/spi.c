@@ -9,6 +9,8 @@
 #include <avr/interrupt.h>
 #include "timer_simplified.h"
 
+uint8_t buffered_data = 0;
+
 void SpiInit(void) 
 {
 	// set MISO as output
@@ -18,6 +20,7 @@ void SpiInit(void)
 	DDRA |= 1<<DDA1;
 #endif
 	// enable interrupt, 3 wire mode, ext clk rising edge
+	USISR = 0;
 	USICR = (1<<USIOIE)|(1<<USIWM0)|(1<<USICS1);
 }
 
@@ -29,7 +32,7 @@ void SpiUninit(void)
 
 uint8_t SpiGetData(void)
 {
-	return USIDR;	
+	return buffered_data;	
 }
 
 void SpiSetData(uint8_t data)
@@ -39,6 +42,7 @@ void SpiSetData(uint8_t data)
 
 ISR(USI_OVERFLOW_vect)
 {
+	buffered_data = USIDR;
 	USISR |= 1<<USIOIF;
 	Event_Signal(SPIRX_EVENT);
 }

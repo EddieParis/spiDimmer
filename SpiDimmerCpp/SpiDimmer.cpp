@@ -65,6 +65,9 @@ uint8_t input_msg[2], output_msg[2] = {0,0};
 uint8_t spi_step=0;
 uint8_t spi_cmd=0;
 
+
+static const uint8_t toto[101] = { 1, 2 };
+
 int main(void)
 {
 	
@@ -76,7 +79,7 @@ int main(void)
 	PORTD &= ~((1<<PORTD5));
 		
 	Event_Init();
-	SpiInit();
+	//SpiInit();
 	
 	SpiSetData(0xFF);
 	
@@ -136,6 +139,7 @@ void SpiRxCB(void * arg)
 		{
 			SpiSetData(0xFF);	
 		}
+		spi_step++;
 	}
 	else if (spi_step == 1 && (spi_cmd&0x80))
 	{
@@ -143,16 +147,14 @@ void SpiRxCB(void * arg)
 		// write mode
 		channels[chan].setValue(SpiGetData());	
 		SpiSetData(0xFF);
-		spi_cmd = 0;
+		spi_step = 0;
 	}
 	else 
 	{
 		// data read was already prepared
 		SpiSetData(0xFF);
-		spi_cmd = 0;
+		spi_step = 0;
 	}
-	
-	spi_step++;
 	
 	
 #if 0	
@@ -240,8 +242,8 @@ ISR(PCINT0_vect)
 	}
 	else
 	{
+		SpiSetData(0xff);
 		SpiInit();
-		SpiSetData(0xFF);
 		spi_step = 0;
 	}
 	
@@ -253,25 +255,36 @@ ISR(PCINT1_vect)
 {
 	
 	if (PINA&(1<<PINA0)) {
+		// Reset the timer
 		GTCCR = 1<<PSR10;
 		TCNT0 = 0;
-			
-		// Reset the timer
+
 		if (channels[0].getValue() != 0)
 		{
 			// forces toggle on set mode -> set output high
 			TCCR0A |= (1<<COM0A1) | (1<<COM0A0);
-			TCCR0B |= 1<<FOC0A;
+		}
+		else
+		{
+			uint8_t old = TCCR0A & ~((1<<COM0A1)|(1<<COM0A0));
+			// force clear output
+			TCCR0A = old | (1<<COM0A1);
 		}
 
 		if (channels[1].getValue() != 0)
 		{
 			// forces toggle on set mode -> set output high
 			TCCR0A |= (1<<COM0B1) | (1<<COM0B0);
-			TCCR0B |= 1<<FOC0B;
 		}
-	
-		OCR0A = channels[0].getValue();
+		else
+		{
+			uint8_t old = TCCR0A & ~((1<<COM0B1)|(1<<COM0B0));
+			// force clear output
+			TCCR0A = old | (1<<COM0B1);
+		}
+		TCCR0B |= (1<<FOC0B) | (1<<FOC0A);
+
+		OCR0A = toto[channels[0].getValue()];
 		OCR0B = channels[1].getValue();
 	
 		TCCR0A = (1<<COM0B1) | (1<<COM0A1);
