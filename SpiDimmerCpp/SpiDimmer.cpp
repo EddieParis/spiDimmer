@@ -66,7 +66,11 @@ uint8_t spi_step=0;
 uint8_t spi_cmd=0;
 
 
-static const uint8_t toto[101] = { 1, 2 };
+static const uint8_t timerValue[101] = { 0,  1,  2,  2,  3,  4,  5,  5,  6,  7,  8,  9,  9, 10, 11, 12, 12, 13, 14, 15,
+	                                    16, 16, 17, 18, 19, 20, 20, 21, 22, 23, 23, 24, 25, 26, 27, 27, 28, 29, 30, 30,
+								        31, 32, 33, 34, 34, 35, 36, 37, 37, 38, 39, 40, 41, 41, 42, 43, 44, 44, 45, 46,
+								        47, 48, 48, 49, 50, 51, 51, 52, 53, 54, 55, 55, 56, 57, 58, 59, 59, 60, 61, 62,
+								        62, 63, 64, 65, 66, 66, 67, 68, 69, 69, 70, 71, 72, 73, 73, 74, 75, 76, 76, 77, 78 };
 
 int main(void)
 {
@@ -284,8 +288,8 @@ ISR(PCINT1_vect)
 		}
 		TCCR0B |= (1<<FOC0B) | (1<<FOC0A);
 
-		OCR0A = toto[channels[0].getValue()];
-		OCR0B = channels[1].getValue();
+		OCR0A = timerValue[channels[0].getValue()];
+		OCR0B = timerValue[channels[1].getValue()];
 	
 		TCCR0A = (1<<COM0B1) | (1<<COM0A1);
 
