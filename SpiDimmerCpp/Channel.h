@@ -22,7 +22,7 @@ public:
 
 private:
 	int8_t value;
-	uint8_t time_cnt;
+	uint16_t time_cnt;
 	int8_t delta;
 	uint8_t top_pause;
 	int8_t last_value;
